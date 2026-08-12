@@ -38,7 +38,14 @@ app)
 
 agent)
 	cd /app/apps/agent
-	exec bun scripts/start.ts
+	# Upstream's start script spawns `eve start --port N` and nothing else, which
+	# leaves the agent bound to 127.0.0.1: reachable from inside its own
+	# container and from nowhere the app or the API can dial. Calling eve
+	# directly is the whole fix, and it also puts the signal handling back in the
+	# process that actually needs it. PATH so eve can find its own tooling.
+	PATH="/app/apps/agent/node_modules/.bin:/app/node_modules/.bin:$PATH"
+	export PATH
+	exec node ./node_modules/.bin/eve start --host :: --port "${AGENT_PORT:-${PORT:-2000}}"
 	;;
 
 cron)

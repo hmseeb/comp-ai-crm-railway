@@ -20,7 +20,9 @@ services:
 
   api:
     image: comp-ai-crm:local
-    command: ["/usr/local/bin/entrypoint.sh", "api"]
+    # Railway discards ENTRYPOINT and execs the start command with the full path;
+    # compose keeps the ENTRYPOINT, so only the role is passed. Same dispatch.
+    command: ["api"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -39,7 +41,7 @@ services:
       AGENT_BRIDGE_SECRET: contract-test-bridge-secret
       CRM_TELEMETRY_DISABLED: "1"
     ports:
-      - "3001:3001"
+      - "13001:3001"
     networks:
       default:
         # So the URL baked into the app's bundle at image build time resolves
@@ -49,7 +51,9 @@ services:
 
   app:
     image: comp-ai-crm:local
-    command: ["/usr/local/bin/entrypoint.sh", "app"]
+    # Railway discards ENTRYPOINT and execs the start command with the full path;
+    # compose keeps the ENTRYPOINT, so only the role is passed. Same dispatch.
+    command: ["app"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,11 +69,13 @@ services:
       AGENT_BRIDGE_SECRET: contract-test-bridge-secret
       CRM_TELEMETRY_DISABLED: "1"
     ports:
-      - "3000:3000"
+      - "13000:3000"
 
   agent:
     image: comp-ai-crm:local
-    command: ["/usr/local/bin/entrypoint.sh", "agent"]
+    # Railway discards ENTRYPOINT and execs the start command with the full path;
+    # compose keeps the ENTRYPOINT, so only the role is passed. Same dispatch.
+    command: ["agent"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -81,7 +87,7 @@ services:
       AGENT_BRIDGE_SECRET: contract-test-bridge-secret
       CRM_TELEMETRY_DISABLED: "1"
     ports:
-      - "2000:2000"
+      - "12000:2000"
     networks:
       default:
         aliases: [agent.railway.internal]
