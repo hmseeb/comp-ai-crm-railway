@@ -27,12 +27,21 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates openssl curl \
  && rm -rf /var/lib/apt/lists/*
 
-# Bun runs everything here except Next.js. `bun run build` segfaults partway
-# through `next build` (panic at 2.7 GB RSS, well under the ceiling, so it is a
-# Bun bug rather than memory), and `next start` is the same runtime on the same
-# bundle. Upstream never hits this because it builds the front end on Vercel,
-# which uses Node. One binary, no package manager, is all that takes.
-COPY --from=node:22-bookworm-slim /usr/local/bin/node /usr/local/bin/node
+# Bun runs everything here except the front end and the agent, both of which
+# need real Node.
+#
+#   next build   segfaults under Bun partway through, panicking at 2.7 GB RSS
+#                with the ceiling nowhere near, so it is a Bun bug rather than
+#                memory. Upstream never hits it because the front end is built
+#                on Vercel, which uses Node.
+#   eve build    refuses to start: Bun reports itself as Node 22 and eve wants
+#                24 or newer.
+#
+# One binary, no package manager, covers both. Node 24 rather than 22 for eve's
+# sake, and the agent's own start script spawns the eve CLI through its
+# `#!/usr/bin/env node` shebang, so it picks this up at runtime too.
+COPY --from=node:24-bookworm-slim /usr/local/bin/node /usr/local/bin/node
+RUN node --version
 
 WORKDIR /app
 
@@ -57,8 +66,9 @@ ENV API_URL=${API_URL} \
     APP_URL=${APP_URL} \
     TURBO_TELEMETRY_DISABLED=1
 
-RUN bunx turbo run build --filter='!app' \
- && cd apps/app && node ./node_modules/.bin/next build
+RUN bunx turbo run build --filter='!app' --filter='!agent' \
+ && cd apps/agent && node ./node_modules/.bin/eve build \
+ && cd ../app && node ./node_modules/.bin/next build
 
 # Only after the build, so the toolchain above still sees development mode.
 ENV NODE_ENV=production
