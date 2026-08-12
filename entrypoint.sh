@@ -14,13 +14,13 @@ api)
 	cd /app/packages/db
 	attempt=1
 	until bunx prisma migrate deploy; do
-		if [ "$attempt" -ge 10 ]; then
+		if [ "$attempt" -ge 20 ]; then
 			echo "[entrypoint] migrations failed after $attempt attempts" >&2
 			exit 1
 		fi
-		echo "[entrypoint] database not ready, retrying migrations ($attempt/10)"
+		echo "[entrypoint] database not ready, retrying migrations ($attempt/20)"
 		attempt=$((attempt + 1))
-		sleep 3
+		sleep 5
 	done
 
 	cd /app/apps/api

@@ -140,7 +140,11 @@ def main():
         IMAGE,
         {**common, "PORT": "3000", "API_URL": "http://api.railway.internal:3001"},
         start="/usr/local/bin/entrypoint.sh app",
-        healthcheck="/sign-in",
+        # Not /sign-in: Railway rejects a healthcheckPath containing a hyphen,
+        # with "Error in healthcheckPath - Invalid input" and nothing about why.
+        # This one is better anyway, because it is only green once the app, the
+        # proxy and the API are all working.
+        healthcheck="/api/auth/ok",
     )
     domain = q(
         """mutation($input: ServiceDomainCreateInput!) {
