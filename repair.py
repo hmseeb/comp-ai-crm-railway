@@ -167,8 +167,23 @@ DEPLOY_PATCH = {
     "cron": {"cronSchedule": "*/15 * * * *", "restartPolicyType": "NEVER"},
 }
 
+# The same mark on all four application services rather than one framework logo
+# each. They are four roles of one image, not four products, and Next.js and
+# NestJS logos would say more about the stack than about what the service does.
+# The mark is a dark glyph on a white rounded square, so it reads as a light tile
+# on Railway's dark canvas. Pinned to the commit, so upstream moving the file
+# cannot break it later.
+APP_ICON = (
+    "https://raw.githubusercontent.com/trycompai/crm/"
+    "f2484fb08d1dd1357c1e3deddb97610cd8e6f1ed/apps/app/public/web-app-manifest-512x512.png"
+)
+
 ICONS = {
     "postgres": "https://devicons.railway.app/i/postgresql.svg",
+    "app": APP_ICON,
+    "api": APP_ICON,
+    "agent": APP_ICON,
+    "cron": APP_ICON,
 }
 
 
