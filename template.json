@@ -47,13 +47,13 @@
         "APP_URL": "https://${{app.RAILWAY_PUBLIC_DOMAIN}}",
         "AGENT_URL": "http://${{agent.RAILWAY_PRIVATE_DOMAIN}}:2000",
         "BETTER_AUTH_SECRET": "${{secret(32)}}",
-        "AGENT_BRIDGE_SECRET": "${{secret(32)}}",
         "CRON_SECRET": "${{secret(32)}}",
         "ALLOWED_SIGN_IN": "<prompt>",
         "GOOGLE_CLIENT_ID": "<prompt>",
         "GOOGLE_CLIENT_SECRET": "<prompt>"
       },
-      "$note_secrets": "The three generated secrets are defined here and referenced from the other services, because a generator read twice returns two different values. api is the one place they are minted."
+      "$note_secrets": "Generated secrets are defined once and referenced from the other services, because a generator read twice returns two different values.",
+      "$note_no_bridge": "AGENT_BRIDGE_SECRET is deliberately absent from this service and no other. It is what lets the API ask the agent whether a pasted Context API key is real, and upstream blocks every page in the app until a key is saved. Context is a separate company, upstream's brand data partner, and its signup is not reliably instant: the first account that tried during this build was flagged for review. With the check on, a fresh template deploy is a running, billing install that nobody can open. With this variable unset, upstream saves the key unchecked, which is its own documented behaviour and not a patch, so a deployer types a placeholder, reaches their CRM, and adds a real key later on Settings then General. What it costs is the dispatch poke: a newly added company is researched on the agent's next scheduled pass instead of instantly. The Agent tab is unaffected, because the front end holds its own copy of the same secret."
     },
 
     {
@@ -62,9 +62,9 @@
       "startCommand": "/usr/local/bin/entrypoint.sh app",
       "port": 3000,
       "publicDomain": true,
-      "healthcheckPath": "/sign-in",
+      "healthcheckPath": "/api/auth/ok",
       "restartPolicy": "ON_FAILURE",
-      "$note_healthcheck": "/sign-in rather than / because / redirects, and rather than /api/health because that one is only green once the API is up, which would make the app's first boot depend on another service winning its own race.",
+      "$note_healthcheck": "Not /sign-in, which is the obvious choice and is rejected: Railway refuses any healthcheckPath containing a hyphen, with \"Error in healthcheckPath - Invalid input\" and no hint as to which character. Underscores and slashes are fine. This path is better anyway, because it is only green once the app, its proxy and the API are all working, and / would not do since it redirects.",
       "$note_api_url": "API_URL here is the private address, which is also what is compiled into the browser bundle at image build time: next.config.ts re-exports API_URL as NEXT_PUBLIC_API_URL and Next inlines NEXT_PUBLIC_* at build. Setting the runtime value to match means the proxy dials the same place whichever of the two Next actually reads. It resolves only while this service is named api.",
       "variables": {
         "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
@@ -73,7 +73,7 @@
         "APP_URL": "https://${{app.RAILWAY_PUBLIC_DOMAIN}}",
         "AGENT_URL": "http://${{agent.RAILWAY_PRIVATE_DOMAIN}}:2000",
         "BETTER_AUTH_SECRET": "${{api.BETTER_AUTH_SECRET}}",
-        "AGENT_BRIDGE_SECRET": "${{api.AGENT_BRIDGE_SECRET}}",
+        "AGENT_BRIDGE_SECRET": "${{agent.AGENT_BRIDGE_SECRET}}",
         "ALLOWED_SIGN_IN": "${{api.ALLOWED_SIGN_IN}}",
         "GOOGLE_CLIENT_ID": "${{api.GOOGLE_CLIENT_ID}}",
         "GOOGLE_CLIENT_SECRET": "${{api.GOOGLE_CLIENT_SECRET}}"
@@ -94,7 +94,7 @@
         "API_URL": "https://${{app.RAILWAY_PUBLIC_DOMAIN}}",
         "APP_URL": "https://${{app.RAILWAY_PUBLIC_DOMAIN}}",
         "BETTER_AUTH_SECRET": "${{api.BETTER_AUTH_SECRET}}",
-        "AGENT_BRIDGE_SECRET": "${{api.AGENT_BRIDGE_SECRET}}",
+        "AGENT_BRIDGE_SECRET": "${{secret(32)}}",
         "AI_GATEWAY_API_KEY": "<prompt, optional>"
       }
     },

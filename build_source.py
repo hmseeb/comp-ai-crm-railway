@@ -126,7 +126,6 @@ def main():
     common = {
         "DATABASE_URL": database_url,
         "BETTER_AUTH_SECRET": better_auth_secret,
-        "AGENT_BRIDGE_SECRET": bridge_secret,
         "ALLOWED_SIGN_IN": allowed_sign_in,
         "GOOGLE_CLIENT_ID": google_id,
         "GOOGLE_CLIENT_SECRET": google_secret,
@@ -138,7 +137,12 @@ def main():
     app = service(
         "app",
         IMAGE,
-        {**common, "PORT": "3000", "API_URL": "http://api.railway.internal:3001"},
+        {
+            **common,
+            "PORT": "3000",
+            "API_URL": "http://api.railway.internal:3001",
+            "AGENT_BRIDGE_SECRET": bridge_secret,
+        },
         start="/usr/local/bin/entrypoint.sh app",
         # Not /sign-in: Railway rejects a healthcheckPath containing a hyphen,
         # with "Error in healthcheckPath - Invalid input" and nothing about why.
@@ -186,6 +190,14 @@ def main():
         },
         start="/usr/local/bin/entrypoint.sh api",
         healthcheck="/health",
+        # No AGENT_BRIDGE_SECRET here, and only here. It is what lets the API ask
+        # the agent whether a pasted Context key is real, and upstream blocks
+        # every page until a key is saved. Context is a separate company whose
+        # signup is not reliably instant, so with the check on, a fresh deploy is
+        # a running, billing install nobody can open. Unset, upstream saves the
+        # key unchecked and a placeholder gets the deployer in. Costs the instant
+        # research poke on a newly added company; the Agent tab is unaffected
+        # because that runs on the front end's own copy.
     )
 
     service(
@@ -194,6 +206,7 @@ def main():
         {
             **common,
             "AGENT_PORT": "2000",
+            "AGENT_BRIDGE_SECRET": bridge_secret,
             "API_URL": origin,
             "APP_URL": origin,
             "AI_GATEWAY_API_KEY": "",

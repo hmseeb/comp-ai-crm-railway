@@ -108,6 +108,22 @@ and cannot send, reply, move or delete anything. Reading is forward-only, so the
 first sync records the current time and imports nothing. Connecting a ten-year-old
 mailbox does not dump a decade into your CRM.
 
+**The box that appears the first time you sign in.** Upstream asks for a Context
+API key and blocks every page until something is saved there. Context is a
+separate company, upstream's brand data partner, and it supplies logos, colours
+and the real name behind a domain. Type a placeholder and carry on; you can put
+a real key in later on Settings then General, and nothing else depends on it.
+
+That is possible because this template deliberately leaves
+`AGENT_BRIDGE_SECRET` off the `api` service. That variable is what lets the API
+ask the agent whether a pasted key is real, and without it upstream saves the
+key unchecked, which is its own documented behaviour and not a modification. The
+cost: a company you just added is researched on the agent's next scheduled pass
+rather than instantly. The Agent tab is unaffected. If you want the check back,
+copy `AGENT_BRIDGE_SECRET` from the `agent` service onto `api`, but only once
+you hold a real key, because afterwards a placeholder stops working and the CRM
+stops opening.
+
 **Optional variables you can add later.** Each one opens exactly one more place
 the agent can look, and it prints at startup which ones it has.
 
@@ -143,8 +159,8 @@ the very first deploy is expected rather than a failure.
 - You sign in and land back on sign-in: your address is not covered by
   `ALLOWED_SIGN_IN`.
 - The Agent tab says the agent is not configured: `AGENT_BRIDGE_SECRET` has to be
-  identical on `api`, `app` and `agent`. The template generates it once on `api`
-  and the other two reference it.
+  identical on `app` and `agent`. The template generates it once on `agent` and
+  the front end references it. It is absent from `api` on purpose, see above.
 - No email ever appears: the sync runs on the `cron` service every fifteen
   minutes and its `CRON_SECRET` has to match the one on `api`. Reading is also
   forward-only, so send yourself something new and wait a quarter of an hour.

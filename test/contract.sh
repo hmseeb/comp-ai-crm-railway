@@ -33,7 +33,10 @@ status() { # status <url> <expected-codes-regex>
 	[[ $code =~ $2 ]] || { echo "  got $code from $1" >&2; return 1; }
 }
 
-body_has() { curl -s --max-time 20 "$1" | grep -qi "$2"; }
+# Captured rather than piped straight into `grep -q`: grep exits on the first
+# match, curl dies of the closed pipe, and pipefail reports the match as a
+# failure. Only bites on responses large enough for grep to finish first.
+body_has() { printf '%s' "$(curl -s --max-time 20 "$1")" | grep -qi "$2"; }
 
 wait_for() { # wait_for <url> <seconds> [text it must contain]
 	local deadline=$((SECONDS + $2))

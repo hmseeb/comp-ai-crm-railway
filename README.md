@@ -82,6 +82,31 @@ and cannot send, reply, move or delete. Reading is forward-only: the first sync
 records the current time and imports nothing, so connecting a ten-year-old
 mailbox does not dump a decade into your CRM.
 
+## The Context key on first sign-in
+
+The first thing you see after signing in is a box asking for a Context API key.
+Context is a separate company, upstream's brand data partner: it supplies the
+logo, the colours, the industry and the real name behind a domain, which is the
+difference between an account that arrives as itself and one that arrives as a
+grey square with its initials in it.
+
+Upstream blocks every page until something is saved there. **You can type a
+placeholder and carry on**, and set a real key later on Settings then General.
+Nothing else in the CRM depends on it.
+
+That works because this template leaves `AGENT_BRIDGE_SECRET` off the `api`
+service on purpose. That variable is what lets the API ask the agent whether a
+pasted key is real; without it, upstream saves the key unchecked, which is its
+own documented behaviour rather than a patch. The cost is small and worth
+knowing: a company you have just added gets researched on the agent's next
+scheduled pass instead of the instant you add it. The Agent tab is unaffected,
+because that runs on the front end's own copy of the same secret.
+
+If you would rather have the check, add `AGENT_BRIDGE_SECRET` to the `api`
+service with the same value the `agent` service has. Do that only once you have
+a real Context key, because after that a placeholder stops working and the CRM
+stops opening.
+
 ## Giving the agent a brain
 
 The agent reaches its model through the [Vercel AI
@@ -145,9 +170,10 @@ character, https included. Not the API service, and no trailing slash.
 reference, so change it in one place.
 
 **The Agent tab says the agent is not configured.** `AGENT_BRIDGE_SECRET` has to
-be the identical value on `api`, `app` and `agent`. The template generates it
-once on `api` and the other two reference it; if you overwrite it anywhere,
-overwrite it everywhere.
+be the identical value on `app` and `agent`. The template generates it once on
+`agent` and the front end references it; if you overwrite it in one place,
+overwrite it in both. It is absent from `api` deliberately, see the Context key
+section above.
 
 **Everything is up but no email appears.** The mailbox sync runs on the `cron`
 service every 15 minutes and needs `CRON_SECRET` to match the `api` service.
