@@ -1,0 +1,87 @@
+# Local stand-in for the Railway topology, used by contract.sh.
+#
+# It is deliberately shaped like the real thing rather than like upstream's
+# compose file: one public origin (the app), the API and the agent private, and
+# the app reaching the API by service name the way it will reach
+# api.railway.internal in production.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: crm
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d crm"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  api:
+    image: comp-ai-crm:local
+    command: ["/usr/local/bin/entrypoint.sh", "api"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/crm?schema=public
+      PORT: "3001"
+      # The API mints the session cookie, so its idea of its own base URL has to
+      # be the origin the browser is on, not its own address.
+      API_URL: http://localhost:3000
+      APP_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: contract-test-secret-not-for-any-real-deployment
+      ALLOWED_SIGN_IN: example.com
+      GOOGLE_CLIENT_ID: contract-test-google-client-id
+      GOOGLE_CLIENT_SECRET: contract-test-google-client-secret
+      AGENT_URL: http://agent.railway.internal:2000
+      AGENT_BRIDGE_SECRET: contract-test-bridge-secret
+      CRM_TELEMETRY_DISABLED: "1"
+    ports:
+      - "3001:3001"
+    networks:
+      default:
+        # So the URL baked into the app's bundle at image build time resolves
+        # here verbatim. If that name stops being the one the app dials, this
+        # test breaks rather than quietly passing against a different address.
+        aliases: [api.railway.internal]
+
+  app:
+    image: comp-ai-crm:local
+    command: ["/usr/local/bin/entrypoint.sh", "app"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/crm?schema=public
+      PORT: "3000"
+      APP_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: contract-test-secret-not-for-any-real-deployment
+      ALLOWED_SIGN_IN: example.com
+      GOOGLE_CLIENT_ID: contract-test-google-client-id
+      GOOGLE_CLIENT_SECRET: contract-test-google-client-secret
+      AGENT_URL: http://agent.railway.internal:2000
+      AGENT_BRIDGE_SECRET: contract-test-bridge-secret
+      CRM_TELEMETRY_DISABLED: "1"
+    ports:
+      - "3000:3000"
+
+  agent:
+    image: comp-ai-crm:local
+    command: ["/usr/local/bin/entrypoint.sh", "agent"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/crm?schema=public
+      AGENT_PORT: "2000"
+      API_URL: http://localhost:3000
+      APP_URL: http://localhost:3000
+      AGENT_BRIDGE_SECRET: contract-test-bridge-secret
+      CRM_TELEMETRY_DISABLED: "1"
+    ports:
+      - "2000:2000"
+    networks:
+      default:
+        aliases: [agent.railway.internal]

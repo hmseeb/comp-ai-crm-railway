@@ -1,0 +1,37 @@
+name: Build and push image
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["README.md", "TEMPLATE_OVERVIEW.md", "template.json"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # A Turborepo build of a Next.js app, a Nest API and the agent, from a cold
+    # bun install every time.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          # Railway runs amd64. Building arm64 too would double a build that is
+          # already long, for nobody.
+          platforms: linux/amd64
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/comp-ai-crm-railway:1.13.0-r1
+            ghcr.io/${{ github.repository_owner }}/comp-ai-crm-railway:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

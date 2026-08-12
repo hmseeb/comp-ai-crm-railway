@@ -1,0 +1,148 @@
+{
+  "$schema": "internal build sheet, not a Railway file",
+  "name": "Comp AI CRM",
+  "upstream": {
+    "repo": "https://github.com/trycompai/crm",
+    "branch": "release",
+    "commit": "f2484fb08d1dd1357c1e3deddb97610cd8e6f1ed",
+    "version": "v1.13.0+17",
+    "licence": "MIT",
+    "$note": "release is the branch upstream tells self-hosters to run. Pinned to a commit rather than the branch so a template deploy today and one next month are the same software."
+  },
+
+  "image": {
+    "ref": "ghcr.io/hmseeb/comp-ai-crm-railway:1.13.0-r1",
+    "source": "https://github.com/hmseeb/comp-ai-crm-railway",
+    "$note": "Upstream ships no image. Its docker-compose.yml is a bare Postgres and nothing else; the three apps are expected to run out of a clone. One image carries all three because they share one node_modules tree and one generated Prisma client, so three images would each haul the same dependencies to save nothing. The role is the first argument to the entrypoint.",
+    "$note_tag": "Immutable tag on purpose. Editing a published template's image tag through templateUpsertConfig keeps the /deploy code alive; regenerating would mint a new one and kill every shared link."
+  },
+
+  "topology": {
+    "$note": "Five services and a Postgres. The shape is forced by where the session cookie lands, not by upstream's compose file.",
+    "$note_one_origin": "Only the app gets a public domain. The Next app already proxies every /api/* and /eve/v1/* request through to the API and the agent, and packages/auth's browser client uses window.location.origin, so a single public origin keeps the session cookie first-party. Two public domains cannot work here: up.railway.app is on the public suffix list, so no parent-domain cookie can span two generated Railway subdomains, and Better Auth would set the cookie on the API host where the app can never read it.",
+    "$note_oauth": "For the same reason API_URL on the API service is the app's public URL, not the API's own address. Better Auth builds the OAuth callback from it, and that callback has to land on the origin the browser is already on."
+  },
+
+  "services": [
+    {
+      "name": "Postgres",
+      "image": "ghcr.io/railwayapp-templates/postgres-ssl:17",
+      "$note": "Railway's own Postgres config, copied verbatim from template(code:\"postgres\"), including PGDATA pointing at a subdirectory of the mount. A volume root contains lost+found and initdb refuses a non-empty directory.",
+      "volume": { "mount": "/var/lib/postgresql/data" }
+    },
+
+    {
+      "name": "api",
+      "role": "api",
+      "startCommand": "/usr/local/bin/entrypoint.sh api",
+      "port": 3001,
+      "publicDomain": false,
+      "healthcheckPath": "/health",
+      "restartPolicy": "ON_FAILURE",
+      "$note_migrations": "The entrypoint runs prisma migrate deploy before the API starts, retrying for 30s. On a fresh template deploy this container and Postgres come up together and losing that race would otherwise burn the service's first boot.",
+      "variables": {
+        "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
+        "PORT": "3001",
+        "API_URL": "https://${{app.RAILWAY_PUBLIC_DOMAIN}}",
+        "APP_URL": "https://${{app.RAILWAY_PUBLIC_DOMAIN}}",
+        "AGENT_URL": "http://${{agent.RAILWAY_PRIVATE_DOMAIN}}:2000",
+        "BETTER_AUTH_SECRET": "${{secret(32)}}",
+        "AGENT_BRIDGE_SECRET": "${{secret(32)}}",
+        "CRON_SECRET": "${{secret(32)}}",
+        "ALLOWED_SIGN_IN": "<prompt>",
+        "GOOGLE_CLIENT_ID": "<prompt>",
+        "GOOGLE_CLIENT_SECRET": "<prompt>"
+      },
+      "$note_secrets": "The three generated secrets are defined here and referenced from the other services, because a generator read twice returns two different values. api is the one place they are minted."
+    },
+
+    {
+      "name": "app",
+      "role": "app",
+      "startCommand": "/usr/local/bin/entrypoint.sh app",
+      "port": 3000,
+      "publicDomain": true,
+      "healthcheckPath": "/sign-in",
+      "restartPolicy": "ON_FAILURE",
+      "$note_healthcheck": "/sign-in rather than / because / redirects, and rather than /api/health because that one is only green once the API is up, which would make the app's first boot depend on another service winning its own race.",
+      "$note_api_url": "API_URL here is the private address, which is also what is compiled into the browser bundle at image build time: next.config.ts re-exports API_URL as NEXT_PUBLIC_API_URL and Next inlines NEXT_PUBLIC_* at build. Setting the runtime value to match means the proxy dials the same place whichever of the two Next actually reads. It resolves only while this service is named api.",
+      "variables": {
+        "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
+        "PORT": "3000",
+        "API_URL": "http://${{api.RAILWAY_PRIVATE_DOMAIN}}:3001",
+        "APP_URL": "https://${{app.RAILWAY_PUBLIC_DOMAIN}}",
+        "AGENT_URL": "http://${{agent.RAILWAY_PRIVATE_DOMAIN}}:2000",
+        "BETTER_AUTH_SECRET": "${{api.BETTER_AUTH_SECRET}}",
+        "AGENT_BRIDGE_SECRET": "${{api.AGENT_BRIDGE_SECRET}}",
+        "ALLOWED_SIGN_IN": "${{api.ALLOWED_SIGN_IN}}",
+        "GOOGLE_CLIENT_ID": "${{api.GOOGLE_CLIENT_ID}}",
+        "GOOGLE_CLIENT_SECRET": "${{api.GOOGLE_CLIENT_SECRET}}"
+      }
+    },
+
+    {
+      "name": "agent",
+      "role": "agent",
+      "startCommand": "/usr/local/bin/entrypoint.sh agent",
+      "port": 2000,
+      "publicDomain": false,
+      "restartPolicy": "ON_FAILURE",
+      "$note": "The research agent runs on its own schedule against its own work queue, so it is a deployment rather than a background thread. It needs a model to think with; without AI_GATEWAY_API_KEY the CRM works and the agent does nothing.",
+      "variables": {
+        "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
+        "AGENT_PORT": "2000",
+        "API_URL": "https://${{app.RAILWAY_PUBLIC_DOMAIN}}",
+        "APP_URL": "https://${{app.RAILWAY_PUBLIC_DOMAIN}}",
+        "BETTER_AUTH_SECRET": "${{api.BETTER_AUTH_SECRET}}",
+        "AGENT_BRIDGE_SECRET": "${{api.AGENT_BRIDGE_SECRET}}",
+        "AI_GATEWAY_API_KEY": "<prompt, optional>"
+      }
+    },
+
+    {
+      "name": "cron",
+      "role": "cron",
+      "startCommand": "/usr/local/bin/entrypoint.sh cron",
+      "cronSchedule": "*/15 * * * *",
+      "restartPolicy": "NEVER",
+      "publicDomain": false,
+      "$note": "Upstream expects an outside scheduler to poke three internal routes. The mailbox sync is the one that matters: it is what turns a rep's own threads and meetings into the evidence the agent reasons from, and without it that evidence never arrives. Exchange rates and the 90-day page-view sweep are daily, gated inside the entrypoint to the 03:00 UTC tick.",
+      "variables": {
+        "CRON_TARGET": "http://${{api.RAILWAY_PRIVATE_DOMAIN}}:3001",
+        "CRON_SECRET": "${{api.CRON_SECRET}}"
+      }
+    }
+  ],
+
+  "prompts": [
+    {
+      "name": "ALLOWED_SIGN_IN",
+      "required": true,
+      "$note": "The entire authorisation model upstream has. Unset means nobody can sign in, which is the safe direction to fail but reads as a broken deploy, so it is asked for up front."
+    },
+    {
+      "name": "GOOGLE_CLIENT_ID",
+      "required": false,
+      "$note": "Empty is allowed and the app still boots, showing a sign-in page that says no provider is configured. It is a prompt rather than a post-deploy instruction because most deployers will have the client already; the redirect URI can only be filled in after the domain exists either way."
+    },
+    { "name": "GOOGLE_CLIENT_SECRET", "required": false },
+    {
+      "name": "AI_GATEWAY_API_KEY",
+      "required": false,
+      "$note": "Vercel AI Gateway. Off-Vercel there is no OIDC to fall back on, so without this the agent has no model."
+    }
+  ],
+
+  "deliberately_omitted": {
+    "REDIS_URL": "A shared cache only matters once more than one instance of the API runs. A single instance caching in its own memory is correct, just not shared, and a Redis service every deployer pays for to fix a problem they do not have is not worth it. Documented in the readme instead.",
+    "BLOB_READ_WRITE_TOKEN": "Vercel Blob. Without it the CRM keeps the origin's URL for logos and avatars and renders them hotlinked, and skips storing contact photographs whose URLs expire. That is a graceful degradation, not a failure, and the alternative is asking every deployer for a Vercel token.",
+    "MICROSOFT_CLIENT_ID": "Same shape as the Google pair and set the same way after deploy. Two more prompts for the smaller half of the audience is a worse trade than one readme section.",
+    "PERPLEXITY_API_KEY / RAPIDAPI_KEY / GITHUB_TOKEN": "Each one opens one more place the agent can look, and it is designed to run with none of them. Readme, not prompts.",
+    "IS_MARKETING": "Serves upstream's own landing page at /. On somebody else's install a stranger arriving at the root should get the sign-in page, which is the default."
+  },
+
+  "telemetry": {
+    "default": "on",
+    "$note": "Upstream sends one event a day of banded counts, server-side only, tied to a random UUID from the first migration, with no IP and no CRM content. Left at upstream's default rather than silently flipped, and CRM_TELEMETRY_DISABLED=1 is documented in the readme as the off switch."
+  }
+}
