@@ -6,7 +6,7 @@ to look at next, spends a research budget, books its own follow-ups, and writes
 down only what it can show evidence for. Close the browser and it keeps going.
 
 Upstream: [trycompai/crm](https://github.com/trycompai/crm), MIT, pinned to
-`release` at `f2484fb` (v1.13.0 plus 17 commits).
+`release` at `c9473b8`, the merge of v1.16.0.
 
 ## What gets deployed
 
@@ -127,8 +127,9 @@ it prints at startup which ones it has:
 | Variable | Service | What it unlocks |
 | --- | --- | --- |
 | `PERPLEXITY_API_KEY` | agent | Open-web research with citations |
-| `RAPIDAPI_KEY` | agent | LinkedIn profiles, via LinkDAPI |
 | `GITHUB_TOKEN` | agent | A higher rate limit when matching contacts to GitHub |
+| `MCP_ENCRYPTION_KEY` | api | MCP connections, with their OAuth tokens encrypted. Exactly 32 bytes as base64: `openssl rand -base64 32` |
+| `CHAT_EVENT_ENCRYPTION_KEY` | api, agent | Encrypts agent builder chat events at rest. Same format |
 | `BLOB_READ_WRITE_TOKEN` | api, agent | Vercel Blob, so logos and photos survive the source going away |
 
 Company logos and colours come from [Context](https://link.context.dev/crm) and

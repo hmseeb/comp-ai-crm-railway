@@ -9,11 +9,11 @@
 # and a single Prisma client; three images would each carry the same 2 GB of
 # dependencies to save nothing.
 
-FROM oven/bun:1.3.12-debian
+FROM oven/bun:1.4.0-debian
 
 # Pinned to the head of upstream's `release` branch, which is the branch upstream
-# tells self-hosters to run. 17 commits past tag v1.13.0.
-ARG CRM_REF=f2484fb08d1dd1357c1e3deddb97610cd8e6f1ed
+# tells self-hosters to run: the merge of tag v1.16.0.
+ARG CRM_REF=c9473b82e3b4bfd5d0598bbdf7c1f36f3d2d68f0
 
 # Baked into the browser bundle. next.config.ts re-exports API_URL as
 # NEXT_PUBLIC_API_URL, and Next inlines NEXT_PUBLIC_* at build time, so the app's

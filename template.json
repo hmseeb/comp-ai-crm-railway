@@ -4,14 +4,14 @@
   "upstream": {
     "repo": "https://github.com/trycompai/crm",
     "branch": "release",
-    "commit": "f2484fb08d1dd1357c1e3deddb97610cd8e6f1ed",
-    "version": "v1.13.0+17",
+    "commit": "c9473b82e3b4bfd5d0598bbdf7c1f36f3d2d68f0",
+    "version": "v1.16.0",
     "licence": "MIT",
     "$note": "release is the branch upstream tells self-hosters to run. Pinned to a commit rather than the branch so a template deploy today and one next month are the same software."
   },
 
   "image": {
-    "ref": "ghcr.io/hmseeb/comp-ai-crm-railway:1.13.0-r1",
+    "ref": "ghcr.io/hmseeb/comp-ai-crm-railway:1.16.0-r1",
     "source": "https://github.com/hmseeb/comp-ai-crm-railway",
     "$note": "Upstream ships no image. Its docker-compose.yml is a bare Postgres and nothing else; the three apps are expected to run out of a clone. One image carries all three because they share one node_modules tree and one generated Prisma client, so three images would each haul the same dependencies to save nothing. The role is the first argument to the entrypoint.",
     "$note_tag": "Immutable tag on purpose. Editing a published template's image tag through templateUpsertConfig keeps the /deploy code alive; regenerating would mint a new one and kill every shared link."
@@ -137,7 +137,7 @@
     "REDIS_URL": "A shared cache only matters once more than one instance of the API runs. A single instance caching in its own memory is correct, just not shared, and a Redis service every deployer pays for to fix a problem they do not have is not worth it. Documented in the readme instead.",
     "BLOB_READ_WRITE_TOKEN": "Vercel Blob. Without it the CRM keeps the origin's URL for logos and avatars and renders them hotlinked, and skips storing contact photographs whose URLs expire. That is a graceful degradation, not a failure, and the alternative is asking every deployer for a Vercel token.",
     "MICROSOFT_CLIENT_ID": "Same shape as the Google pair and set the same way after deploy. Two more prompts for the smaller half of the audience is a worse trade than one readme section.",
-    "PERPLEXITY_API_KEY / RAPIDAPI_KEY / GITHUB_TOKEN": "Each one opens one more place the agent can look, and it is designed to run with none of them. Readme, not prompts.",
+    "PERPLEXITY_API_KEY / GITHUB_TOKEN / MCP_ENCRYPTION_KEY / CHAT_EVENT_ENCRYPTION_KEY": "Each one opens one more place the agent can look, and it is designed to run with none of them. Readme, not prompts.",
     "IS_MARKETING": "Serves upstream's own landing page at /. On somebody else's install a stranger arriving at the root should get the sign-in page, which is the default."
   },
 

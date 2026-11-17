@@ -62,8 +62,8 @@ blocks, which is free and is the strongest evidence there is.
 
 - Source: [trycompai/crm](https://github.com/trycompai/crm), MIT licensed.
 - Image: [hmseeb/comp-ai-crm-railway](https://github.com/hmseeb/comp-ai-crm-railway),
-  pinned to upstream's `release` branch at commit `f2484fb`, which is v1.13.0
-  plus 17 commits.
+  pinned to upstream's `release` branch at commit `c9473b8`, the merge of
+  v1.16.0.
 - [Google OAuth client setup](https://console.cloud.google.com/apis/credentials)
 - [Vercel AI Gateway](https://vercel.com/docs/ai-gateway)
 
@@ -130,8 +130,9 @@ the agent can look, and it prints at startup which ones it has.
 | Variable | Service | What it unlocks |
 | --- | --- | --- |
 | `PERPLEXITY_API_KEY` | agent | Open-web research with citations |
-| `RAPIDAPI_KEY` | agent | LinkedIn profiles, via LinkDAPI |
 | `GITHUB_TOKEN` | agent | A higher rate limit when matching contacts to GitHub |
+| `MCP_ENCRYPTION_KEY` | api | MCP connections, with their OAuth tokens encrypted. Exactly 32 bytes as base64: `openssl rand -base64 32` |
+| `CHAT_EVENT_ENCRYPTION_KEY` | api, agent | Encrypts agent builder chat events at rest. Same format |
 | `BLOB_READ_WRITE_TOKEN` | api, agent | Storage, so logos and photos survive the source going away |
 | `REDIS_URL` | api, app | A shared cache, once more than one copy of the API runs |
 | `IS_MARKETING` | app | Serves upstream's landing page at the root instead of sign-in |
