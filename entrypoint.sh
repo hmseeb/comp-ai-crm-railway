@@ -64,6 +64,10 @@ cron)
 		curl -fsS -m 120 -X POST -H "$auth" "$base/internal/sync/rates" || echo "[cron] rates refresh failed" >&2
 		echo "[cron] sweeping tracked page views older than 90 days"
 		curl -fsS -m 300 -X POST -H "$auth" "$base/internal/tracking/retention" || echo "[cron] retention sweep failed" >&2
+		# Since v1.16.0: archived companies, contacts and deals are purged once
+		# they pass upstream's archive window. Without this call they never are.
+		echo "[cron] pruning archived records past the archive window"
+		curl -fsS -m 300 -X POST -H "$auth" "$base/internal/archive/prune" || echo "[cron] archive prune failed" >&2
 	fi
 	;;
 

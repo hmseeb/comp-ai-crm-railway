@@ -34,7 +34,7 @@ jobs:
           # already long, for nobody.
           platforms: linux/amd64
           tags: |
-            ghcr.io/${{ github.repository_owner }}/comp-ai-crm-railway:1.16.0-r1
+            ghcr.io/${{ github.repository_owner }}/comp-ai-crm-railway:1.16.0-r2
             ghcr.io/${{ github.repository_owner }}/comp-ai-crm-railway:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max

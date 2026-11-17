@@ -110,6 +110,11 @@ check "api listens on IPv6" \
 check "agent listens on IPv6" \
 	bash -c "docker exec crm-contract-agent-1 curl -s -o /dev/null --max-time 5 'http://[::1]:2000/'"
 
+# Off Vercel, with no Docker daemon and no KVM, just-bash is the only sandbox
+# eve's DefaultSandbox can open. Upstream stopped shipping it in v1.16.0.
+check "agent sandbox provider just-bash resolves" \
+	docker exec -w /app/apps/agent crm-contract-agent-1 node -e "import('just-bash')"
+
 echo
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

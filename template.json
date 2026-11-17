@@ -11,7 +11,7 @@
   },
 
   "image": {
-    "ref": "ghcr.io/hmseeb/comp-ai-crm-railway:1.16.0-r1",
+    "ref": "ghcr.io/hmseeb/comp-ai-crm-railway:1.16.0-r2",
     "source": "https://github.com/hmseeb/comp-ai-crm-railway",
     "$note": "Upstream ships no image. Its docker-compose.yml is a bare Postgres and nothing else; the three apps are expected to run out of a clone. One image carries all three because they share one node_modules tree and one generated Prisma client, so three images would each haul the same dependencies to save nothing. The role is the first argument to the entrypoint.",
     "$note_tag": "Immutable tag on purpose. Editing a published template's image tag through templateUpsertConfig keeps the /deploy code alive; regenerating would mint a new one and kill every shared link."
@@ -106,7 +106,7 @@
       "cronSchedule": "*/15 * * * *",
       "restartPolicy": "NEVER",
       "publicDomain": false,
-      "$note": "Upstream expects an outside scheduler to poke three internal routes. The mailbox sync is the one that matters: it is what turns a rep's own threads and meetings into the evidence the agent reasons from, and without it that evidence never arrives. Exchange rates and the 90-day page-view sweep are daily, gated inside the entrypoint to the 03:00 UTC tick.",
+      "$note": "Upstream expects an outside scheduler to poke four internal routes. The mailbox sync is the one that matters: it is what turns a rep's own threads and meetings into the evidence the agent reasons from, and without it that evidence never arrives. Exchange rates, the 90-day page-view sweep and the archive prune (new in v1.16.0) are daily, gated inside the entrypoint to the 03:00 UTC tick. test/cron_test.sh checks every one is called.",
       "variables": {
         "CRON_TARGET": "http://${{api.RAILWAY_PRIVATE_DOMAIN}}:3001",
         "CRON_SECRET": "${{api.CRON_SECRET}}"
