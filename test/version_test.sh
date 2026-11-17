@@ -39,6 +39,20 @@ check "Dockerfile bun matches upstream packageManager" "$upstream_bun" "$image_b
 ci_tag=$(sed -n 's/.*comp-ai-crm-railway:\([0-9][^ ]*\)$/\1/p' .github/workflows/build.yml)
 check "CI tag carries upstream version" "$upstream_version" "${ci_tag%-r*}"
 
+# eve's DefaultSandbox picks Vercel, then Docker, then microsandbox (KVM), then
+# just-bash. A Docker build and a Railway container have none of the first
+# three, so just-bash is the only provider that can open, and `eve build` fails
+# without it. Upstream builds on Vercel and dropped the package in v1.16.0.
+agent_pkg=$(curl -fsS "https://raw.githubusercontent.com/trycompai/crm/$ref/apps/agent/package.json")
+if printf '%s' "$agent_pkg" | grep -q '"just-bash"'; then
+	echo "ok    upstream agent ships just-bash itself"
+elif grep -q 'bun add .*just-bash@' Dockerfile; then
+	echo "ok    Dockerfile adds just-bash for the agent sandbox"
+else
+	echo "FAIL  upstream agent lacks just-bash and the Dockerfile does not add it"
+	fail=1
+fi
+
 sheet_ref=$(python3 -c 'import json; print(json.load(open("template.json"))["image"]["ref"])')
 check "template.json image is the CI tag" "ghcr.io/hmseeb/comp-ai-crm-railway:$ci_tag" "$sheet_ref"
 

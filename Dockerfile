@@ -57,6 +57,14 @@ ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build?schema=public"
 
 RUN bun install --frozen-lockfile
 
+# The agent's sandbox. eve's DefaultSandbox tries Vercel, then a Docker daemon,
+# then microsandbox (needs KVM), then just-bash. Neither this build nor a
+# Railway container has any of the first three, so just-bash is the only one
+# that can open, and `eve build` refuses to finish without it. Upstream builds
+# on Vercel and dropped the package in v1.16.0. Pinned inside eve's ^3.1.0 peer
+# range; added after the frozen install so upstream's lockfile stays as is.
+RUN cd apps/agent && bun add -D just-bash@3.6.1
+
 # turbo.json declares API_URL and APP_URL as cache keys precisely because they
 # are compiled in; everything else the build touches is passthrough. The
 # DATABASE_URL placeholder is needed again here because `eve build` evaluates the
