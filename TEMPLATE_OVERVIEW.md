@@ -89,7 +89,7 @@ console](https://console.cloud.google.com/apis/credentials) create an OAuth
 client ID of type Web application and add this as an authorised redirect URI:
 
 ```
-https://<your app address>/api/auth/callback/google
+https://YOUR-APP-ADDRESS/api/auth/callback/google
 ```
 
 It is the app's address, not the API's, exactly, with https and no trailing
